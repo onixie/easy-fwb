@@ -1,32 +1,44 @@
 ;;; easy-buffer.el --- Easy Buffer
 
-;; Copyright (C) 2018 Yc.S
-
 ;; Author: Yc.S <onixie@gmail.com>
-;; Created: 14 Jul 2010
-;; Keywords: 
-;; Homepage: https://github.com/onixie/easy-fwb
+;; URL: https://github.com/onixie/easy-fwb
+;; Version: 0.0.1
 
-(defun switch-to-scratch ()
+;;; Commentary:
+
+;; Copyright (c) 2018, Yc.S
+
+;;; Code:
+
+(require 'calendar)
+(require 'eshell)
+(require 'erc)
+(require 'eww)
+
+(defun easy-buffer-switch-to-scratch ()
+  "Switch to *scratch* buffer."
   (interactive)
   (switch-to-buffer "*scratch*"))
 
-(defun switch-to-messages ()
+(defun easy-buffer-switch-to-messages ()
+  "Switch to *Messages* buffer."
   (interactive)
   (switch-to-buffer "*Messages*"))
 
-(defun switch-to-.emacs ()
+(defun easy-buffer-switch-to-.emacs ()
+  "Open .emacs file buffer."
   (interactive)
   (find-file "~/.emacs"))
 
-(defun switch-to-calender ()
+(defun easy-buffer-switch-to-calendar ()
+  "Switch to *Calendar* buffer."
   (interactive)
-  (if (or (not (fboundp 'calendar-exit)) 
+  (if (or (not (fboundp 'calendar-exit))
 	  (null (calendar-exit)))
       (calendar)))
 
-(defun kill-other-buffers (&rest buffers-not-to-kill)
-  "Kill buffers not listed in arguements. 
+(defun easy-buffer-kill-buffers-except (&rest buffers-not-to-kill)
+  "Kill buffers not listed in arguement BUFFERS-NOT-TO-KILL.
 If the arguements are nil, all buffers except current buffer will be killed"
   (interactive)
   (let ((buffers-all (buffer-list))
@@ -48,11 +60,11 @@ If the arguements are nil, all buffers except current buffer will be killed"
     (define-key map (kbd "S-<delete>")
       (lambda ()
 	(interactive)
-	(kill-other-buffers (current-buffer)
-			    (get-buffer "*scratch*")
-			    (get-buffer "*Messages*")
-			    (get-buffer "*ielm*")
-			    (get-buffer "*eshell*"))
+	(easy-buffer-kill-buffers-except (current-buffer)
+                                         (get-buffer "*scratch*")
+                                         (get-buffer "*Messages*")
+                                         (get-buffer "*ielm*")
+                                         (get-buffer "*eshell*"))
 	(call-interactively 'delete-other-windows)))
 
     (define-key map (kbd "C-S-M-g") 'revert-buffer)
@@ -60,29 +72,29 @@ If the arguements are nil, all buffers except current buffer will be killed"
     (define-key map (kbd "<f10>") nil) ; Conflict with GDB's key binding for gud-step
     (define-key map (kbd "<f1> <f10>") 'menu-bar-open)
 
-    (define-key map (kbd "C-`") 'switch-to-calender)
+    (define-key map (kbd "C-`") 'easy-buffer-switch-to-calendar)
 
     (define-key map (kbd "<home>") 'ielm)
     (define-key map (kbd "<kp-home>") 'ielm)
 
-    (define-key map (kbd "<end>") 'switch-to-.emacs)
-    (define-key map (kbd "<kp-end>") 'switch-to-.emacs)
+    (define-key map (kbd "<end>") 'easy-buffer-switch-to-.emacs)
+    (define-key map (kbd "<kp-end>") 'easy-buffer-switch-to-.emacs)
     (when (not window-system)
-      (define-key map (kbd "<select>") 'switch-to-.emacs))
+      (define-key map (kbd "<select>") 'easy-buffer-switch-to-.emacs))
 
-    (define-key map (kbd "<insert>") 'switch-to-messages)
-    (define-key map (kbd "<kp-insert>") 'switch-to-messages)
+    (define-key map (kbd "<insert>") 'easy-buffer-switch-to-messages)
+    (define-key map (kbd "<kp-insert>") 'easy-buffer-switch-to-messages)
     (when (not window-system)
-      (define-key map (kbd "<insertchar>") 'switch-to-messages))
+      (define-key map (kbd "<insertchar>") 'easy-buffer-switch-to-messages))
 
-    (define-key map (kbd "<kp-left>") 'switch-to-scratch)
+    (define-key map (kbd "<kp-left>") 'easy-buffer-switch-to-scratch)
     (define-key map (kbd "<kp-up>") 'eshell)
     (define-key map (kbd "<kp-begin>") 'eww)
     (define-key map (kbd "<kp-down>") 'erc)
 
     map))
 
-(define-key Buffer-menu-mode-map (kbd "C-m") 
+(define-key Buffer-menu-mode-map (kbd "C-m")
   (lambda ()
     (interactive)
     (mapc 'call-interactively '(Buffer-menu-this-window delete-other-windows))))
@@ -92,6 +104,7 @@ If the arguements are nil, all buffers except current buffer will be killed"
 (define-minor-mode easy-buffer-mode
   "Keymap for manipulating buffer
    \{KEYMAP}"
+  :require 'easy-buffer
   :init-value t
   :lighter " Easy-B"
   :keymap easy-buffer-mode-map
@@ -99,3 +112,5 @@ If the arguements are nil, all buffers except current buffer will be killed"
   :global t)
 
 (provide 'easy-buffer)
+
+;;; easy-buffer.el ends here
