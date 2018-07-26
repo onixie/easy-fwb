@@ -21,7 +21,7 @@
 			     (cond ((symbolp name) (symbol-name name))
 				   ((numberp name) (number-to-string name))
 				   ((stringp name) name)
-				   (t (error "Fail to easy-window--symbolize due to invalid part: %s" name))))
+				   (t (error "Fail to symbolize due to invalid part: %s" name))))
 			   name-parts)))))
 
 (defmacro easy-window--define-kill-window-along-direction (direction &optional keymap)
