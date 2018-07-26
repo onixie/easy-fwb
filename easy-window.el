@@ -14,19 +14,19 @@
 (require 'windmove)
 
 (eval-when-compile
-  (defun symbolize (&rest name-parts)
+  (defun easy-window--symbolize (&rest name-parts)
     "Create a symbol with name formed by concatenating the rest arguments NAME-PARTS."
     (intern (apply #'concat
 		   (mapcar (lambda (name)
 			     (cond ((symbolp name) (symbol-name name))
 				   ((numberp name) (number-to-string name))
 				   ((stringp name) name)
-				   (t (error "Fail to symbolize due to invalid part: %s" name))))
+				   (t (error "Fail to easy-window--symbolize due to invalid part: %s" name))))
 			   name-parts)))))
 
-(defmacro define-kill-window-along-direction (direction &optional keymap)
+(defmacro easy-window--define-kill-window-along-direction (direction &optional keymap)
   "Define kill-<DIRECTION>-window function and key when an optional KEYMAP is given."
-  (let ((func-name (symbolize "kill-" direction "-window")))
+  (let ((func-name (easy-window--symbolize "kill-" direction "-window")))
     `(progn
        (if (keymapp ,keymap)
 	   (let ((key (concat "<" ,(symbol-name direction) ">")))
@@ -37,16 +37,16 @@
 	 (save-selected-window
 	   (if (not (null (condition-case err
 			      (,((lambda (direction)
-				   (symbolize "windmove-" direction)) direction))
+				   (easy-window--symbolize "windmove-" direction)) direction))
 			    (error nil))))
 	       ;; Do not kill buffer as such simple way,
 	       ;; or you might lose origninal window.
 	       ;; (kill-buffer-and-window)
 	       (delete-window)))))))
 
-(defmacro windmove-diagonal (hori vert)
+(defmacro easy-window--windmove-diagonal (hori vert)
   "Macro to define windmove-<HORI>-<VERT> function."
-  (let ((func-name (symbolize "windmove-" hori "-" vert)))
+  (let ((func-name (easy-window--symbolize "windmove-" hori "-" vert)))
     `(progn
        (defun ,func-name ()
 	 (interactive)
@@ -58,7 +58,7 @@
 	 (windmove-do-window-select ',vert))
        ',func-name)))
 
-(defun other-window-by-name (name &optional win)
+(defun easy-window-other-window-by-buffer (name &optional win)
   "Move cursor to the window with buffer named NAME, from optional argument WIN or current selected window."
   (interactive "sName:")
   (let* ((current (or win (selected-window)))
@@ -76,18 +76,18 @@
       (if (eq next current)
 	  (setq run nil)))))
 
-(defun windmove-list-buffer ()
+(defun easy-window-list-buffers-window ()
   "Move to *Buffer List* buffer."
   (interactive)
   (call-interactively 'list-buffers)
-  (other-window-by-name "*Buffer List*"))
+  (easy-window-other-window-by-buffer "*Buffer List*"))
 
 (defvar easy-window-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-kill-window-along-direction left map)
-    (define-kill-window-along-direction right map)
-    (define-kill-window-along-direction up map)
-    (define-kill-window-along-direction down map)
+    (easy-window--define-kill-window-along-direction left map)
+    (easy-window--define-kill-window-along-direction right map)
+    (easy-window--define-kill-window-along-direction up map)
+    (easy-window--define-kill-window-along-direction down map)
 
     (define-key map (kbd "<C-left>") 'windmove-left)
     (define-key map (kbd "<C-right>") 'windmove-right)
@@ -99,12 +99,12 @@
     (define-key map (kbd "<C-kp-up>") 'windmove-up)
     (define-key map (kbd "<C-kp-down>") 'windmove-down)
 
-    (define-key map (kbd "<C-kp-home>") (windmove-diagonal left up))
-    (define-key map (kbd "<C-kp-prior>") (windmove-diagonal right up))
-    (define-key map (kbd "<C-kp-end>") (windmove-diagonal left down))
-    (define-key map (kbd "<C-kp-next>") (windmove-diagonal right down))
+    (define-key map (kbd "<C-kp-home>") (easy-window--windmove-diagonal left up))
+    (define-key map (kbd "<C-kp-prior>") (easy-window--windmove-diagonal right up))
+    (define-key map (kbd "<C-kp-end>") (easy-window--windmove-diagonal left down))
+    (define-key map (kbd "<C-kp-next>") (easy-window--windmove-diagonal right down))
 
-    (define-key map (kbd "C-x C-b") 'windmove-list-buffer)
+    (define-key map (kbd "C-x C-b") 'easy-window-list-buffers-window)
 
     map))
 
