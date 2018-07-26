@@ -1,60 +1,65 @@
 ;;; easy-window.el --- Easy Window
 
-;; Copyright (C) 2018 Yc.S
-
 ;; Author: Yc.S <onixie@gmail.com>
-;; Created: 14 Jul 2010
-;; Keywords: 
-;; Homepage: https://github.com/onixie/easy-fwb
+;; URL: https://github.com/onixie/easy-fwb
+;; Version: 0.0.1
 
-;;;;;;;;;;;;;;;;  Easy Buffer and Window  ;;;;;;;;;;;;;;;;
+;;; Commentary:
 
-(require 'cl)
+;; Copyright (c) 2018, Yc.S
+
+;;; Code:
+
+(eval-when-compile (require 'cl))
 (require 'windmove)
 
-(defun symbolize (&rest nameparts)
-  "Make a symbol by concating the strings/symbols as its name"
-  (intern (apply #'concat 
-		 (mapcar #'(lambda (name)
+(eval-when-compile
+  (defun symbolize (&rest name-parts)
+    "Create a symbol with name formed by concatenating the rest arguments NAME-PARTS."
+    (intern (apply #'concat
+		   (mapcar (lambda (name)
 			     (cond ((symbolp name) (symbol-name name))
 				   ((numberp name) (number-to-string name))
 				   ((stringp name) name)
-				   (t (error "can't be glue together"))))
-			 nameparts))))
+				   (t (error "Fail to symbolize due to invalid part: %s" name))))
+			   name-parts)))))
 
-(defmacro kill-window-along-direction (direction &optional keymap)
-  "Define buffer killing function for direction"
-  `(progn 
-     (if (keymapp ,keymap)
-	 (let ((key (concat "<" ,(symbol-name direction) ">")))
-	   (define-key ,keymap (read-kbd-macro key)
-	     ',(symbolize "kill-" direction "-window"))))
-     (defun ,(symbolize "kill-" direction "-window") ()
-       (interactive)
-       (save-selected-window
-	 (if (not (null (condition-case err 
-			    (,((lambda (direction)
-				 (symbolize "windmove-" direction)) direction))
-			  (error nil))))
-	     ;; Do not kill buffer as such simple way, 
-	     ;; or you might lose origninal window.
-	     ;; (kill-buffer-and-window)
-	     (delete-window))))))
+(defmacro define-kill-window-along-direction (direction &optional keymap)
+  "Define kill-<DIRECTION>-window function and key when an optional KEYMAP is given."
+  (let ((func-name (symbolize "kill-" direction "-window")))
+    `(progn
+       (if (keymapp ,keymap)
+	   (let ((key (concat "<" ,(symbol-name direction) ">")))
+	     (define-key ,keymap (read-kbd-macro key)
+	       ',func-name)))
+       (defun ,func-name ()
+	 (interactive)
+	 (save-selected-window
+	   (if (not (null (condition-case err
+			      (,((lambda (direction)
+				   (symbolize "windmove-" direction)) direction))
+			    (error nil))))
+	       ;; Do not kill buffer as such simple way,
+	       ;; or you might lose origninal window.
+	       ;; (kill-buffer-and-window)
+	       (delete-window)))))))
 
 (defmacro windmove-diagonal (hori vert)
-  `(progn
-     (defun ,(symbolize "windmove-" hori "-" vert) ()
-       (interactive)
-       (condition-case nil
-	   (windmove-do-window-select ',hori)
-	 (error
-	  (mapc #'windmove-do-window-select '(,vert ,hori))
-	  (return nil)))
-       (windmove-do-window-select ',vert))
-     ',(symbolize "windmove-" hori "-" vert)))
+  "Macro to define windmove-<HORI>-<VERT> function."
+  (let ((func-name (symbolize "windmove-" hori "-" vert)))
+    `(progn
+       (defun ,func-name ()
+	 (interactive)
+	 (condition-case nil
+	     (windmove-do-window-select ',hori)
+	   (error
+	    (mapc #'windmove-do-window-select '(,vert ,hori))
+	    (return nil)))
+	 (windmove-do-window-select ',vert))
+       ',func-name)))
 
 (defun other-window-by-name (name &optional win)
-  "Move cursor to the window with buffer named like NAME by other-window"
+  "Move cursor to the window with buffer named NAME, from optional argument WIN or current selected window."
   (interactive "sName:")
   (let* ((current (or win (selected-window)))
 	 (next (next-window current nil t)) ;; minibuffer cannot use other-window
@@ -65,18 +70,24 @@
 	  (progn
 	    (other-window count t)
 	    (setq run nil))
-	(progn 
+	(progn
 	  (setq count (1+ count))
 	  (setq next (next-window next nil t))))
       (if (eq next current)
 	  (setq run nil)))))
 
+(defun windmove-list-buffer ()
+  "Move to *Buffer List* buffer."
+  (interactive)
+  (call-interactively 'list-buffers)
+  (other-window-by-name "*Buffer List*"))
+
 (defvar easy-window-mode-map
   (let ((map (make-sparse-keymap)))
-    (kill-window-along-direction left map)
-    (kill-window-along-direction right map)
-    (kill-window-along-direction up map)
-    (kill-window-along-direction down map)
+    (define-kill-window-along-direction left map)
+    (define-kill-window-along-direction right map)
+    (define-kill-window-along-direction up map)
+    (define-kill-window-along-direction down map)
 
     (define-key map (kbd "<C-left>") 'windmove-left)
     (define-key map (kbd "<C-right>") 'windmove-right)
@@ -97,12 +108,7 @@
 
     map))
 
-(defun windmove-list-buffer ()
-  (interactive)
-  (call-interactively 'list-buffers)
-  (other-window-by-name "*Buffer List*"))
-
-(define-key Buffer-menu-mode-map (kbd "C-m") 
+(define-key Buffer-menu-mode-map (kbd "C-m")
   (lambda ()
     (interactive)
     (mapc 'call-interactively '(Buffer-menu-this-window delete-other-windows))))
@@ -112,6 +118,7 @@
 (define-minor-mode easy-window-mode
   "Keymap for manipulating window
    \{KEYMAP}"
+  :require 'easy-window
   :init-value t
   :lighter " Easy-W"
   :keymap easy-window-mode-map
@@ -119,3 +126,5 @@
   :global t)
 
 (provide 'easy-window)
+
+;;; easy-window.el ends here
