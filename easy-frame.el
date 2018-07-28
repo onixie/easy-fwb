@@ -12,28 +12,28 @@
 
 (eval-when-compile (require 'cl))
 
-(defcustom default-ratio 0.85
-  "The default ratio of the workarea to fill when unfill it."
+(defcustom easy-frame-default-ratio 0.85
+  "The default ratio of the workarea to take up for centered-fill mode."
   :type 'number
   :group 'easy-frame)
 
-(defcustom auto-smart-fill t
+(defcustom easy-frame-auto-smart-fill t
   "Fill new frame automatically and smartly."
   :type 'boolean
   :group 'easy-frame)
 
-(defcustom first-frame-x-workarea 'smart
+(defcustom easy-frame-initial-fill 'smart
   "Default fill method for first frame."
   :type 'symbol
   :group 'easy-frame)
 
-(defcustom precise-1 2
+(defcustom easy-frame--precise-1 2
   "Precision parameter 1 to adjust frame position and size.
 This parameter controls the times to execute BODY in easy-frame--ensure-do"
   :type 'integer
   :group 'easy-frame)
 
-(defcustom precise-2 0.10
+(defcustom easy-frame--precise-2 0.10
   "Precision parameter 2 to adjust frame position and size.
 Delay in seconds for starting adjust the first frame."
   :type 'number
@@ -68,11 +68,11 @@ Delay in seconds for starting adjust the first frame."
 (defmacro easy-frame--ensure-do (frame &rest body)
   "Macro to ensure WM messages work on FRAME by running BODY multiple times."
   `(let ((,@frame))
-     (dotimes (i precise-1)
+     (dotimes (i easy-frame--precise-1)
        (x-send-client-message nil 0 ',(car frame) "_NET_WM_STATE" 32 '(0 "_NET_WM_STATE_FULLSCREEN" 0))
        (x-send-client-message nil 0 ',(car frame) "_NET_WM_STATE" 32 '(0 "_NET_WM_STATE_MAXIMIZED_VERT" 0))
        (x-send-client-message nil 0 ',(car frame) "_NET_WM_STATE" 32 '(0 "_NET_WM_STATE_MAXIMIZED_HORZ" 0)))
-     (dotimes (i precise-1)
+     (dotimes (i easy-frame--precise-1)
        ,@body)))
 
 (defsubst easy-frame--resize (width height &optional frame)
@@ -84,8 +84,8 @@ Delay in seconds for starting adjust the first frame."
 					    (t #x0001F000))))
 			   (x-send-client-message nil 0 frame "_NET_MOVERESIZE_WINDOW" 32 `(,flags 0 0 ,(or width 0) ,(or height 0))))))
 
-(defun fill-workarea (&optional frame dir ratio)
-  "Resize FRAME in direction DIR so that it takes up RATIO or DEFAULT-RATIO (center) or 1/2 (non-center) part of the workarea."
+(defun easy-frame-fill-workarea (&optional frame dir ratio)
+  "Resize FRAME in direction DIR so that it takes up RATIO or EASY-FRAME-DEFAULT-RATIO (center) or 1/2 (non-center) part of the workarea."
   (interactive)
   (easy-frame--ensure-do (frame frame)
 			 (let* ((extents (easy-frame--extents frame))
@@ -101,10 +101,10 @@ Delay in seconds for starting adjust the first frame."
 			   (let ((ratio (if (and (numberp ratio) (<= ratio 1))
 					    ratio
 					  (cl-case dir
-					    ((center) default-ratio)
+					    ((center) easy-frame-default-ratio)
 					    (t 0.5)))))
 			     (if (>= ratio 1)
-				 (fill-workarea frame)
+				 (easy-frame-fill-workarea frame)
 			       (modify-frame-parameters frame
 							`((ffw-state . ,(cl-case dir
 									  ((upper down left right upper-left upper-right down-left down-right center) dir)
@@ -164,14 +164,14 @@ Delay in seconds for starting adjust the first frame."
 				 (easy-frame--resize (floor w) (floor h) frame)
 				 (set-frame-position (or frame (selected-frame)) (floor x) (floor y))))))))
 
-(defun toggle-fill-workarea (&optional frame)
+(defun easy-frame-toggle-fill-workarea (&optional frame)
   "Toggle fill workarea with FRAME or the current selected frame between full-fill and centered-fill mode."
   (interactive)
   (if (cl-equalp (frame-parameter frame 'ffw-state) 'center)
-      (fill-workarea frame)
-    (fill-workarea frame 'center)))
+      (easy-frame-fill-workarea frame)
+    (easy-frame-fill-workarea frame 'center)))
 
-(defun smart-fill-workarea (&optional frame)
+(defun easy-frame-smart-fill-workarea (&optional frame)
   "Resize FRAME or the current selected frame so that it fills workarea smartly."
   (interactive)
   (cl-flet ((collect-ffw-state (frame)
@@ -188,8 +188,8 @@ Delay in seconds for starting adjust the first frame."
 	    (contain-states (s1 s2)
 			    (cl-subsetp s2 s1 :test #'cl-equalp)))
     (let ((ffw-states (collect-ffw-state (or frame (selected-frame)))))
-      (cond ((null ffw-states) (fill-workarea frame))
-	    ((member 'fill ffw-states) (fill-workarea frame 'center))
+      (cond ((null ffw-states) (easy-frame-fill-workarea frame))
+	    ((member 'fill ffw-states) (easy-frame-fill-workarea frame 'center))
 	    (t
 	     (cl-flet ((remove-mb (dirs s1 &rest ss)
 				  (if (member s1 ffw-states)
@@ -204,10 +204,10 @@ Delay in seconds for starting adjust the first frame."
 		      (dirs (remove-mb dirs 'upper-right 'upper 'right))
 		      (dirs (remove-mb dirs 'down-right 'down 'right))
 		      (dirs (remove-mb dirs 'down-left 'down 'left)))
-		 (cond ((null dirs) (fill-workarea frame 'center))
-		       (t (fill-workarea frame (cl-first (remove-states dirs ffw-states))))))))))))
+		 (cond ((null dirs) (easy-frame-fill-workarea frame 'center))
+		       (t (easy-frame-fill-workarea frame (cl-first (remove-states dirs ffw-states))))))))))))
 
-(defmacro define-fill-workarea-key (map key dir)
+(defmacro easy-frame--define-fill-workarea-key (map key dir)
   "In MAP, define KEY for each frame-fill-<DIR>-workarea function."
   (cl-flet ((symbolize (&rest name-parts)
 		       (intern (apply #'concat
@@ -222,43 +222,43 @@ Delay in seconds for starting adjust the first frame."
 	 (unless (fboundp ',func-name)
 	   (defun ,func-name
 	       (interactive)
-	     (fill-workarea nil ',dir)))
+	     (easy-frame-fill-workarea nil ',dir)))
 	 (define-key ,map ,key ',func-name)))))
 
-(when auto-smart-fill
+(when easy-frame-auto-smart-fill
   (add-to-list 'after-make-frame-functions
 	       (lambda (fr)
 		 ;; Make sure it start after all other actions
-		 (when auto-smart-fill
-		   (run-at-time precise-2 nil #'smart-fill-workarea fr)))))
+		 (when easy-frame-auto-smart-fill
+		   (run-at-time easy-frame--precise-2 nil #'easy-frame-smart-fill-workarea fr)))))
 
 (defvar easy-frame-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-fill-workarea-key map (kbd "M-<up>") upper)
+    (easy-frame--define-fill-workarea-key map (kbd "M-<up>") upper)
     (define-key map (kbd "<M-kp-up>") (kbd "M-<up>"))
 
-    (define-fill-workarea-key map (kbd "M-<down>") down)
+    (easy-frame--define-fill-workarea-key map (kbd "M-<down>") down)
     (define-key map (kbd "<M-kp-down>") (kbd "M-<down>"))
 
-    (define-fill-workarea-key map (kbd "M-<left>") left)
+    (easy-frame--define-fill-workarea-key map (kbd "M-<left>") left)
     (define-key map (kbd "<M-kp-left>") (kbd "M-<left>"))
 
-    (define-fill-workarea-key map (kbd "M-<right>") right)
+    (easy-frame--define-fill-workarea-key map (kbd "M-<right>") right)
     (define-key map (kbd "<M-kp-right>") (kbd "M-<right>"))
 
-    (define-fill-workarea-key map (kbd "<M-kp-home>") upper-left)
-    (define-fill-workarea-key map (kbd "<M-kp-end>") down-left)
-    (define-fill-workarea-key map (kbd "<M-kp-next>") down-right)
-    (define-fill-workarea-key map (kbd "<M-kp-prior>") upper-right)
+    (easy-frame--define-fill-workarea-key map (kbd "<M-kp-home>") upper-left)
+    (easy-frame--define-fill-workarea-key map (kbd "<M-kp-end>") down-left)
+    (easy-frame--define-fill-workarea-key map (kbd "<M-kp-next>") down-right)
+    (easy-frame--define-fill-workarea-key map (kbd "<M-kp-prior>") upper-right)
 
-    (define-key map (kbd "<M-kp-begin>") #'toggle-fill-workarea)
-    (define-key map (kbd "<M-kp-enter>") #'smart-fill-workarea)
+    (define-key map (kbd "<M-kp-begin>") #'easy-frame-toggle-fill-workarea)
+    (define-key map (kbd "<M-kp-enter>") #'easy-frame-smart-fill-workarea)
 
     (define-key map (kbd "<M-kp-add>") (kbd "C-x 5 2"))
     (define-key map (kbd "<M-kp-subtract>") (kbd "C-x 5 0"))
 
-    (define-key map (kbd "C-x 9") #'fill-workarea)
-    (define-key map (kbd "C-x 7") (lambda () (fill-workarea nil 'center)))
+    (define-key map (kbd "C-x 9") #'easy-frame-fill-workarea)
+    (define-key map (kbd "C-x 7") (lambda () (easy-frame-fill-workarea nil 'center)))
 
     map))
 
@@ -271,14 +271,14 @@ Delay in seconds for starting adjust the first frame."
   :keymap easy-frame-mode-map
   :group 'easy-fwb
   :global t
-  :set (run-at-time precise-2 nil
+  :set (run-at-time easy-frame--precise-2 nil
 		    (lambda ()
-		      (cl-case first-frame-x-workarea
-			((fill) (fill-workarea))
-			((center) (fill-workarea nil 'center))
-			((upper) (fill-workarea nil 'upper))
-			((left) (fill-workarea nil 'left))
-			((smart) (smart-fill-workarea))))))
+		      (cl-case easy-frame-initial-fill
+			((fill) (easy-frame-fill-workarea))
+			((center) (easy-frame-fill-workarea nil 'center))
+			((upper) (easy-frame-fill-workarea nil 'upper))
+			((left) (easy-frame-fill-workarea nil 'left))
+			((smart) (easy-frame-smart-fill-workarea))))))
 
 (add-hook 'window-setup-hook 'easy-frame-mode)
 
