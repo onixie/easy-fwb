@@ -69,9 +69,9 @@ Delay in seconds for starting adjust the first frame."
   "Macro to ensure WM messages work on FRAME by running BODY multiple times."
   `(let ((,@frame))
      (dotimes (i easy-frame--precise-1)
-       (x-send-client-message nil 0 ',(car frame) "_NET_WM_STATE" 32 '(0 "_NET_WM_STATE_FULLSCREEN" 0))
-       (x-send-client-message nil 0 ',(car frame) "_NET_WM_STATE" 32 '(0 "_NET_WM_STATE_MAXIMIZED_VERT" 0))
-       (x-send-client-message nil 0 ',(car frame) "_NET_WM_STATE" 32 '(0 "_NET_WM_STATE_MAXIMIZED_HORZ" 0)))
+       (x-send-client-message nil 0 ,(car frame) "_NET_WM_STATE" 32 '(0 "_NET_WM_STATE_FULLSCREEN" 0))
+       (x-send-client-message nil 0 ,(car frame) "_NET_WM_STATE" 32 '(0 "_NET_WM_STATE_MAXIMIZED_VERT" 0))
+       (x-send-client-message nil 0 ,(car frame) "_NET_WM_STATE" 32 '(0 "_NET_WM_STATE_MAXIMIZED_HORZ" 0)))
      (dotimes (i easy-frame--precise-1)
        ,@body)))
 
@@ -220,8 +220,8 @@ Delay in seconds for starting adjust the first frame."
     (let ((func-name (symbolize "frame-fill-" dir "-workarea")))
       `(progn
 	 (unless (fboundp ',func-name)
-	   (defun ,func-name
-	       (interactive)
+	   (defun ,func-name ()
+	     (interactive)
 	     (easy-frame-fill-workarea nil ',dir)))
 	 (define-key ,map ,key ',func-name)))))
 
@@ -258,7 +258,7 @@ Delay in seconds for starting adjust the first frame."
     (define-key map (kbd "<M-kp-subtract>") (kbd "C-x 5 0"))
 
     (define-key map (kbd "C-x 9") #'easy-frame-fill-workarea)
-    (define-key map (kbd "C-x 7") (lambda () (easy-frame-fill-workarea nil 'center)))
+    (define-key map (kbd "C-x 7") (lambda () (interactive) (easy-frame-fill-workarea nil 'center)))
 
     map))
 
