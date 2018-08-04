@@ -3,6 +3,7 @@
 ;; Author: Yc.S <onixie@gmail.com>
 ;; URL: https://github.com/onixie/easy-fwb
 ;; Version: 0.0.1
+;; Package-Requires: ((cl-lib "1.0"))
 
 ;;; Commentary:
 
@@ -10,7 +11,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(require 'cl-lib)
 
 (defcustom easy-frame-default-ratio 0.85
   "The default ratio of the workarea to take up for centered-fill mode."
