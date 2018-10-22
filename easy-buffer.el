@@ -14,6 +14,7 @@
 (require 'eshell)
 (require 'erc)
 (require 'eww)
+(require 'tabbar)
 
 (defun easy-buffer-switch-to-scratch ()
   "Switch to *scratch* buffer."
@@ -49,8 +50,52 @@ If the arguements are nil, all buffers except current buffer will be killed"
 			  (memq buffer buffers-not-to-kill))
 			buffers-all))))
 
+;;; Tabbar + buffer
+(defvar easy-buffer--max-cycle-header-count 3)
+(set-default (make-variable-buffer-local 'cycle-header-count) easy-buffer--max-cycle-header-count)
+(set-default (make-variable-buffer-local 'cycle-header-format) header-line-format)
+(defun easy-buffer--cycle-tabbar-press-home ()
+  (interactive)
+  (let* ((tbl-fmt '(:eval (tabbar-line)))
+	 (cmd-key (this-command-keys))
+	 (up-p (cl-equalp cmd-key (kbd "S-<up>")))
+	 (down-p (cl-equalp cmd-key (kbd "S-<down>"))))
+    (setq cycle-header-count
+	  (cond (up-p (mod (decf cycle-header-count) easy-buffer--max-cycle-header-count))
+		(down-p (mod (incf cycle-header-count) easy-buffer--max-cycle-header-count))
+		(t easy-buffer--max-cycle-header-count)))
+    (cond ((= cycle-header-count (1- easy-buffer--max-cycle-header-count))
+	   (unless (cl-equalp header-line-format tbl-fmt)
+	     (setq cycle-header-format header-line-format))
+	   (setq header-line-format tbl-fmt)
+	   (tabbar-press-home))
+	  ((= cycle-header-count 0)
+	   (unless (cl-equalp cycle-header-format tbl-fmt)
+	     (setq header-line-format cycle-header-format))
+	   (when (or down-p (cl-equalp cycle-header-format tbl-fmt))
+	     (tabbar-press-home)))
+	  (t (setq header-line-format tbl-fmt)
+	     (when (or up-p (cl-equalp cycle-header-format tbl-fmt))
+	       (tabbar-press-home))))))
+
+(defmacro easy-buffer--tabbar-dwim-move (direction)
+  (let ((dir-text (symbol-name direction)))
+    `(lambda ()
+       (interactive)
+       (if tabbar--buffer-show-groups
+           (progn
+             (call-interactively #',(intern (concatenate 'string "tabbar-" dir-text "-group")))
+             (call-interactively #'tabbar-press-home))
+         (call-interactively #',(intern (concatenate 'string "tabbar-" dir-text)))))))
+
 (defvar easy-buffer-mode-map
   (let ((map (make-sparse-keymap)))
+
+    (define-key map (kbd "S-<left>") (easy-buffer--tabbar-dwim-move backward))
+    (define-key map (kbd "S-<right>") (easy-buffer--tabbar-dwim-move forward))
+
+    (define-key map (kbd "S-<up>") 'easy-buffer--cycle-tabbar-press-home)
+    (define-key map (kbd "S-<down>") 'easy-buffer--cycle-tabbar-press-home)
 
     (define-key map (kbd "<delete>") 'kill-buffer-and-window)
     (define-key map (kbd "<kp-delete>") (kbd "<delete>"))
