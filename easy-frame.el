@@ -55,7 +55,7 @@ Delay in seconds for starting adjust the first frame."
 	    (workareas (or (x-window-property "_NET_WORKAREA" nil "AnyPropertyType" 0 nil t)
 			   (error "_NET_WORKAREA not supported"))))
 	(cl-subseq workareas (* 4 desk-ind) (* 4 (1+ desk-ind))))
-    (error nil (list 0 0 (display-pixel-width) (display-pixel-height)))))
+    (error nil (vector 0 0 (display-pixel-width) (display-pixel-height)))))
 
 (defsubst easy-frame--extents (&optional frame)
   "Return the border (left right top bottom) of FRAME or the currently selected frame."
@@ -63,7 +63,7 @@ Delay in seconds for starting adjust the first frame."
       (or (x-window-property "_NET_FRAME_EXTENTS" nil "AnyPropertyType"
 			     (string-to-number (frame-parameter frame 'outer-window-id)) nil t)
 	  (error "_NET_FRAME_EXTENTS not supported"))
-    (error nil (list 0 0 0 0))))
+    (error nil (vector 0 0 0 0))))
 
 ;;; Kludge: I have to set multiple times to make the resizing precisely.
 (defmacro easy-frame--ensure-do (frame &rest body)
