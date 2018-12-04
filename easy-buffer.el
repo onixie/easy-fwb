@@ -111,12 +111,19 @@ If the arguements are nil, all buffers except current buffer will be killed"
 
     map))
 
-(define-key Buffer-menu-mode-map (kbd "C-m")
-  (lambda ()
-    (interactive)
-    (mapc 'call-interactively '(Buffer-menu-this-window delete-other-windows))))
+(add-hook 'Buffer-menu-mode-hook
+          (lambda ()
+            (define-key Buffer-menu-mode-map (kbd "C-m")
+              (lambda ()
+                (interactive)
+                (mapc 'call-interactively '(Buffer-menu-this-window delete-other-windows))))
+            (define-key Buffer-menu-mode-map (kbd "e") (kbd "C-m"))
+            ))
 
-(define-key Buffer-menu-mode-map (kbd "e") (kbd "C-m"))
+(add-hook 'dired-mode-hook
+          (lambda ()
+            (define-key dired-mode-map [mouse-2] 'dired-mouse-find-file)
+            ))
 
 (define-minor-mode easy-buffer-mode
   "Keymap for manipulating buffer
