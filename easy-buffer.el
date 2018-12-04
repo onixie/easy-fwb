@@ -120,6 +120,14 @@ If the arguements are nil, all buffers except current buffer will be killed"
             (define-key Buffer-menu-mode-map (kbd "e") (kbd "C-m"))
             ))
 
+(defun easy-buffer--pop-up-vertically (buffer alist)
+  (let ((split-width-threshold nil)
+        (split-height-threshold 0))
+    (display-buffer-pop-up-window buffer alist)))
+
+(add-to-list 'display-buffer-alist
+             '("*Buffer List*" easy-buffer--pop-up-vertically))
+
 (add-hook 'dired-mode-hook
           (lambda ()
             (define-key dired-mode-map [mouse-2] 'dired-mouse-find-file)
