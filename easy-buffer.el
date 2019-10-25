@@ -6,7 +6,7 @@
 
 ;;; Commentary:
 
-;; Copyright (c) 2018, Yc.S
+;; Copyright (c) 2018, 2019, Yc.S
 
 ;;; Code:
 
@@ -14,7 +14,7 @@
 (require 'eshell)
 (require 'erc)
 (require 'eww)
-(require 'tabbar)
+(require 'centaur-tabs)
 
 (defun easy-buffer-switch-to-scratch ()
   "Switch to *scratch* buffer."
@@ -50,24 +50,25 @@ If the arguements are nil, all buffers except current buffer will be killed"
 			  (memq buffer buffers-not-to-kill))
 			buffers-all))))
 
-(defmacro easy-buffer--tabbar-dwim-move (direction)
-  (let ((dir-text (symbol-name direction)))
-    `(lambda ()
-       (interactive)
-       (if tabbar--buffer-show-groups
-           (progn
-             (call-interactively #',(intern (concatenate 'string "tabbar-" dir-text "-group")))
-             (call-interactively #'tabbar-press-home))
-         (call-interactively #',(intern (concatenate 'string "tabbar-" dir-text)))))))
+;;; deprecated
+;; (defmacro easy-buffer--tabbar-dwim-move (direction)
+;;   (let ((dir-text (symbol-name direction)))
+;;     `(lambda ()
+;;        (interactive)
+;;        (if tabbar--buffer-show-groups
+;;            (progn
+;;              (call-interactively #',(intern (concatenate 'string "tabbar-" dir-text "-group")))
+;;              (call-interactively #'tabbar-press-home))
+;;          (call-interactively #',(intern (concatenate 'string "centaur-tabbar-" dir-text)))))))
 
 (defvar easy-buffer-mode-map
   (let ((map (make-sparse-keymap)))
 
-    (define-key map (kbd "S-<left>") (easy-buffer--tabbar-dwim-move backward))
-    (define-key map (kbd "S-<right>") (easy-buffer--tabbar-dwim-move forward))
+    (define-key map (kbd "S-<left>") 'centaur-tabs-backward)
+    (define-key map (kbd "S-<right>") 'centaur-tabs-forward)
 
-    (define-key map (kbd "S-<up>") (lambda () (interactive) (tabbar-buffer-show-groups t)))
-    (define-key map (kbd "S-<down>") (lambda () (interactive) (tabbar-buffer-show-groups nil)))
+    (define-key map (kbd "S-<up>") (lambda () (interactive) (setq centaur-tabs--buffer-show-groups t)))
+    (define-key map (kbd "S-<down>") (lambda () (interactive) (setq centaur-tabs--buffer-show-groups nil)))
 
     (define-key map (kbd "<delete>") 'kill-buffer-and-window)
     (define-key map (kbd "<kp-delete>") (kbd "<delete>"))
